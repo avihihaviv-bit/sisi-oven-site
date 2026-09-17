@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# DEPLOY STEP: replace example.com with the live domain
+Sitemap: https://example.com/sitemap.xml
