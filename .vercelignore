@@ -1,0 +1,6 @@
+# repo files that are not part of the site
+README.md
+set-domain.sh
+
+# Apache/LiteSpeed config, irrelevant on Vercel (headers come from vercel.json)
+.htaccess

@@ -1,6 +1,76 @@
 (() => {
   'use strict';
 
+  /* ===================== Analytics =====================
+     Vercel Web Analytics. Chosen because the script and the beacon are both
+     same-origin (/_vercel/...), so the strict CSP needs no relaxing, and because
+     it is cookieless: no identifier is stored on the device and nothing is sent
+     to a third party. Until it is switched on in the Vercel dashboard the script
+     404s, the queue below simply never drains, and nothing on the page notices. */
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  (function () {
+    // the endpoint only exists on Vercel, so asking for it anywhere else is a
+    // guaranteed 404 in the console for no benefit
+    const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname) || location.protocol === 'file:';
+    if (local) return;
+    const tag = document.createElement('script');
+    tag.defer = true;
+    tag.src = '/_vercel/insights/script.js';   // same origin: allowed by script-src 'self'
+    document.head.appendChild(tag);
+  })();
+
+  /* One helper for every conversion event. Never send a name, a phone number,
+     an address or a cart total: only what was clicked, and which dish. */
+  function track(name, data) {
+    try { window.va('event', data ? { name: name, data: data } : { name: name }); }
+    catch (e) { /* analytics must never break the page */ }
+  }
+
+  addEventListener('click', e => {
+    const a = e.target.closest('a[href]');
+    if (a) {
+      const href = a.getAttribute('href') || '';
+      if (href.startsWith('tel:')) track('phone_click');
+      else if (href.includes('wa.me')) track('whatsapp_click');
+      else if (href.includes('waze.com') || href.includes('google.com/maps')) track('directions_click');
+      else if (href.includes('plweb.online')) track('order_site_click');
+      return;
+    }
+    const add = e.target.closest('.add-btn');
+    if (add) track('add_to_cart', { dish: add.dataset.add });
+  }, { passive: true });
+
+  /* ===================== Installable app, and honest offline =====================
+     The worker keeps the shell so the page opens without a connection. HTML is
+     always fetched network-first, so nobody reads a stale price while online;
+     when a cached copy is served offline the bar below says so out loud. */
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        // a new version installs in the background; take it on the next visit
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('skip-waiting');
+            }
+          });
+        });
+      }).catch(() => { /* no worker is not a failure the visitor should see */ });
+    });
+  }
+
+  const offlineBar = document.getElementById('offlineBar');
+  function paintOnline() {
+    const off = !navigator.onLine;
+    if (offlineBar) offlineBar.hidden = !off;
+    document.body.classList.toggle('is-offline', off);
+  }
+  addEventListener('online', paintOnline);
+  addEventListener('offline', paintOnline);
+  paintOnline();
+
   /* ===================== Hero scrub ===================== */
   const hero = document.getElementById('hero');
   const stage = document.querySelector('.hero-stage');
@@ -225,6 +295,17 @@
 
   /* ===================== Static-hero gates (must match CSS exactly) ===================== */
   const GATES = ['(prefers-reduced-motion: reduce)'];
+
+  /* The hero is a 4.4MB download. That is a fair trade on wifi and an unfair one
+     on a metered or 2G connection, so those visitors get the static hero — the
+     same page, the same words, no video fetched at all. */
+  function meteredConnection() {
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!c) return false;
+    if (c.saveData === true) return true;
+    return c.effectiveType === '2g' || c.effectiveType === 'slow-2g';
+  }
+
   let scrubOn = false;
   let motionOff = false;   // set by the accessibility panel
   function pinToFinalStates() {
@@ -256,7 +337,10 @@
     pinToFinalStates();
   }
   function applyHeroMode() {
-    if (motionOff || GATES.some(q => matchMedia(q).matches)) {
+    const metered = meteredConnection();
+    // the media query already styles the reduced-motion case; this covers the rest
+    hero.classList.toggle('hero-static', metered);
+    if (motionOff || metered || GATES.some(q => matchMedia(q).matches)) {
       disableScrub();
       pinToFinalStates();   // also on a first load that never armed the scrub
     } else {
@@ -265,6 +349,9 @@
   }
   const MQLS = GATES.map(q => matchMedia(q));
   MQLS.forEach(m => m.addEventListener('change', applyHeroMode));
+  // if the connection improves, the hero can come alive without a reload
+  const conn = navigator.connection;
+  if (conn && conn.addEventListener) conn.addEventListener('change', applyHeroMode);
   applyHeroMode();
 
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', e => {
@@ -494,21 +581,22 @@
     const show = window.scrollY > hero.offsetHeight * 0.88;   // once the opening journey has played
     if (show === railsShown) return;
     railsShown = show;
-    [railTop, railBottom].forEach(rail => {
-      if (show) {
-        rail.hidden = false;
-        requestAnimationFrame(() => rail.classList.add('visible'));
-      } else {
-        rail.classList.remove('visible');
-        setTimeout(() => { if (!railsShown) rail.hidden = true; }, 500);
-      }
-    });
-    if (!show) closeA11y();
+    if (show) {
+      railTop.hidden = false;
+      requestAnimationFrame(() => railTop.classList.add('visible'));
+    } else {
+      railTop.classList.remove('visible');
+      setTimeout(() => { if (!railsShown) railTop.hidden = true; }, 500);
+    }
+    // back to top only earns its place once there is something to go back from
+    toTop.hidden = !show;
     if (onRailsToggle) onRailsToggle();
   }
   addEventListener('scroll', () => {
     if (!railTick) { railTick = true; requestAnimationFrame(updateRails); }
   }, { passive: true });
+  railBottom.hidden = false;
+  requestAnimationFrame(() => railBottom.classList.add('visible'));
   updateRails();
 
   const stillPrefersMotion = () => !motionOff && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -517,9 +605,18 @@
   });
 
   /* the accessibility panel */
-  const SCALES = [100, 112, 125, 140];
+  const SCALES = [100, 112, 125, 140, 160];
   const PREFS_KEY = 'sisi-a11y';
-  let prefs = { scale: 100, contrast: false, links: false, nomotion: false };
+  const DEFAULTS = {
+    scale: 100, spacing: false, readable: false, contrast: false, mono: false,
+    links: false, headings: false, focus: false, cursor: false, nomotion: false
+  };
+  const LABELS = {
+    spacing: 'ריווח טקסט מוגדל', readable: 'גופן קריא', contrast: 'ניגודיות גבוהה',
+    mono: 'גווני אפור', links: 'הדגשת קישורים', headings: 'הדגשת כותרות',
+    focus: 'סימון מיקוד מודגש', cursor: 'סמן עכבר גדול', nomotion: 'עצירת אנימציות'
+  };
+  let prefs = Object.assign({}, DEFAULTS);
 
   try {
     const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null');
@@ -530,17 +627,26 @@
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* nothing to do */ }
   }
 
+  const a11yStatus = document.getElementById('a11yStatus');
+  function announce(msg) { if (a11yStatus) a11yStatus.textContent = msg; }
+
   function applyPrefs() {
     document.documentElement.style.fontSize = prefs.scale + '%';
-    document.body.classList.toggle('a11y-contrast', prefs.contrast);
-    document.body.classList.toggle('a11y-links', prefs.links);
-    document.body.classList.toggle('a11y-nomotion', prefs.nomotion);
+    Object.keys(LABELS).forEach(key => {
+      document.body.classList.toggle('a11y-' + key, !!prefs[key]);
+    });
     document.documentElement.classList.toggle('no-smooth', prefs.nomotion);
     const scaleOut = document.getElementById('a11yScale');
     if (scaleOut) scaleOut.textContent = prefs.scale + '%';
     a11yPanel.querySelectorAll('.a11y-toggle').forEach(btn => {
       btn.setAttribute('aria-pressed', String(!!prefs[btn.dataset.a11y]));
     });
+    // the size buttons stop responding at the ends, so say so rather than going quiet
+    const lo = prefs.scale === SCALES[0], hi = prefs.scale === SCALES[SCALES.length - 1];
+    const down = a11yPanel.querySelector('[data-a11y="text-down"]');
+    const up = a11yPanel.querySelector('[data-a11y="text-up"]');
+    if (down) down.disabled = lo;
+    if (up) up.disabled = hi;
     if (prefs.nomotion !== motionOff) {
       motionOff = prefs.nomotion;
       applyHeroMode();
@@ -548,11 +654,25 @@
     }
   }
 
+  const focusablesIn = el => [...el.querySelectorAll('button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(n => n.offsetParent !== null || n === document.activeElement);
+
   function openA11y() {
     a11yPanel.hidden = false;
+    // sit just above the button itself, which moves depending on whether
+    // back-to-top is in the rail yet
+    const r = a11yBtn.getBoundingClientRect();
+    a11yPanel.style.bottom = Math.round(window.innerHeight - r.top + 10) + 'px';
+    // the room above the button, but never so much of the screen that the page
+    // disappears behind the panel
+    const room = r.top - 22;
+    const cap = window.innerHeight * (window.innerWidth <= 640 ? 0.55 : 0.7);
+    a11yPanel.style.maxHeight = Math.round(Math.max(260, Math.min(room, cap))) + 'px';
     a11yBtn.setAttribute('aria-expanded', 'true');
-    const first = a11yPanel.querySelector('button');
+    // the first control can be disabled (text-down at 100%), so take the first live one
+    const first = focusablesIn(a11yPanel)[0];
     if (first) first.focus();
+    markScrollEnd();
   }
   function closeA11y() {
     if (a11yPanel.hidden) return;
@@ -562,8 +682,32 @@
   a11yBtn.addEventListener('click', () => {
     a11yPanel.hidden ? openA11y() : closeA11y();
   });
+  document.getElementById('a11yClose').addEventListener('click', () => { closeA11y(); a11yBtn.focus(); });
+
+  // reachable on the first Tab, without walking the whole page first
+  // drop the fade once the list is scrolled to its end
+  const a11yScroll = a11yPanel.querySelector('.a11y-scroll');
+  const markScrollEnd = () => {
+    if (!a11yScroll) return;
+    const done = a11yScroll.scrollTop + a11yScroll.clientHeight >= a11yScroll.scrollHeight - 2;
+    a11yScroll.classList.toggle('at-end', done);
+  };
+  if (a11yScroll) a11yScroll.addEventListener('scroll', markScrollEnd, { passive: true });
+
+  const skipA11y = document.getElementById('skipA11y');
+  if (skipA11y) skipA11y.addEventListener('click', () => { if (a11yPanel.hidden) openA11y(); else a11yPanel.querySelector('.a11y-btn').focus(); });
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !a11yPanel.hidden) { closeA11y(); a11yBtn.focus(); }
+    if (e.key === 'Escape' && !a11yPanel.hidden) { closeA11y(); a11yBtn.focus(); return; }
+    // while it is open, Tab stays inside it
+    if (e.key === 'Tab' && !a11yPanel.hidden) {
+      const items = focusablesIn(a11yPanel);
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!a11yPanel.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    }
   });
   document.addEventListener('pointerdown', e => {
     if (a11yPanel.hidden) return;
@@ -578,13 +722,21 @@
       const i = SCALES.indexOf(prefs.scale);
       const next = kind === 'text-up' ? Math.min(SCALES.length - 1, i + 1) : Math.max(0, i - 1);
       prefs.scale = SCALES[next];
-    } else if (kind === 'reset') {
-      prefs = { scale: 100, contrast: false, links: false, nomotion: false };
-    } else if (kind in prefs) {
-      prefs[kind] = !prefs[kind];
+      applyPrefs(); savePrefs();
+      announce('גודל טקסט ' + prefs.scale + ' אחוז');
+      return;
     }
-    applyPrefs();
-    savePrefs();
+    if (kind === 'reset') {
+      prefs = Object.assign({}, DEFAULTS);
+      applyPrefs(); savePrefs();
+      announce('כל הגדרות הנגישות אופסו');
+      return;
+    }
+    if (kind in prefs) {
+      prefs[kind] = !prefs[kind];
+      applyPrefs(); savePrefs();
+      announce(LABELS[kind] + (prefs[kind] ? ' פועל' : ' כבוי'));
+    }
   });
 
   applyPrefs();
@@ -601,18 +753,33 @@
   const cartTotal = document.getElementById('cartTotal');
   const cartNote = document.getElementById('cartNote');
 
+  const MAX_QTY = 99;
+  // stored state is not to be trusted: a string qty turned "5" + 1 into "51",
+  // and nothing stopped a fractional or nine-digit quantity
+  const cleanQty = v => {
+    const n = Math.floor(Number(v));
+    return Number.isFinite(n) && n > 0 ? Math.min(n, MAX_QTY) : 0;
+  };
+
   let cart = [];
   try {
     const saved = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-    if (Array.isArray(saved)) cart = saved.filter(i => i && i.name && i.qty > 0);
+    if (Array.isArray(saved)) {
+      cart = saved
+        .filter(i => i && typeof i.name === 'string' && i.name)
+        .map(i => ({ name: i.name, price: typeof i.price === 'string' ? i.price : '', qty: cleanQty(i.qty) }))
+        .filter(i => i.qty > 0);
+    }
   } catch (e) { /* storage blocked: start empty */ }
 
   const saveCart = () => {
     try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) { /* nothing to do */ }
   };
   const priceOf = item => {
-    const n = parseFloat(String(item.price).replace(/[^\d.]/g, ''));
-    return isFinite(n) ? n : null;
+    const raw = String(item.price);
+    if (/-/.test(raw)) return null;            // a negative price is not a price
+    const n = parseFloat(raw.replace(/[^\d.]/g, ''));
+    return Number.isFinite(n) && n >= 0 ? n : null;
   };
   const countItems = () => cart.reduce((sum, i) => sum + i.qty, 0);
 
@@ -640,6 +807,7 @@
       plus.type = 'button';
       plus.textContent = '+';
       plus.setAttribute('aria-label', 'הוספת כמות של ' + item.name);
+      plus.disabled = item.qty >= MAX_QTY;
       plus.addEventListener('click', () => changeQty(item.name, 1));
       qty.append(minus, out, plus);
 
@@ -677,7 +845,7 @@
   function changeQty(name, delta) {
     const item = cart.find(i => i.name === name);
     if (!item) return;
-    item.qty += delta;
+    item.qty = cleanQty(cleanQty(item.qty) + delta);
     if (item.qty <= 0) cart = cart.filter(i => i.name !== name);
     saveCart();
     renderCart();
@@ -685,7 +853,7 @@
 
   function addToCart(name, price, btn) {
     const item = cart.find(i => i.name === name);
-    if (item) item.qty++;
+    if (item) item.qty = cleanQty(cleanQty(item.qty) + 1);
     else cart.push({ name, price, qty: 1 });
     saveCart();
     renderCart();
@@ -741,7 +909,10 @@
     cartPanel.hidden = true;
     cartFab.setAttribute('aria-expanded', 'false');
   }
-  cartFab.addEventListener('click', () => { cartPanel.hidden ? openCart() : closeCart(); });
+  cartFab.addEventListener('click', () => {
+    if (cartPanel.hidden) track('begin_checkout', { items: countItems() });
+    cartPanel.hidden ? openCart() : closeCart();
+  });
   document.getElementById('cartClose').addEventListener('click', () => { closeCart(); cartFab.focus(); });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !cartPanel.hidden) { closeCart(); cartFab.focus(); }
@@ -758,17 +929,19 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
         copied = true;
-        cartNote.textContent = 'ההזמנה הועתקה. אתר ההזמנות נפתח, אפשר להדביק שם או לבחור את המנות.';
+        cartNote.textContent = 'ההזמנה הועתקה ללוח. אתר ההזמנות נפתח בלשונית חדשה, ושם משלימים את ההזמנה.';
       }).catch(() => { /* the sync path already reported what happened */ });
     }
+    track('order_handoff', { items: countItems() });
     window.open(ORDER_URL, '_blank', 'noopener');   // still inside the click
     cartNote.textContent = copied
-      ? 'ההזמנה הועתקה. אתר ההזמנות נפתח, אפשר להדביק שם או לבחור את המנות.'
+      ? 'ההזמנה הועתקה ללוח. אתר ההזמנות נפתח בלשונית חדשה, ושם משלימים את ההזמנה.'
       : 'אתר ההזמנות נפתח. אם ההעתקה לא נתפסה, אפשר לשלוח את ההזמנה בוואטסאפ.';
   });
 
   document.getElementById('cartWhatsapp').addEventListener('click', () => {
     if (!cart.length) { cartNote.textContent = 'קודם מוסיפים מנות מהתפריט, ואז אפשר לשלוח.'; return; }
+    track('whatsapp_order', { items: countItems() });
     window.open('https://wa.me/972526299357?text=' + encodeURIComponent(orderText()), '_blank', 'noopener');
   });
 

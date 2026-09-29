@@ -71,6 +71,8 @@ body::before{
   font-weight:600;
 }
 .skip-link:focus{ top:1rem; }
+.skip-a11y{ right:11.5rem; font-family:inherit; border:0; cursor:pointer; font-size:1rem; }
+@media (max-width:480px){ .skip-a11y{ right:1rem; }  .skip-a11y:focus{ top:4.2rem; } }
 
 :focus-visible{
   outline:3px solid #fff3e4;          /* light core, readable on the accent */
@@ -79,6 +81,7 @@ body::before{
   border-radius:6px;
 }
 @media (forced-colors:active){
+  .star-half{ background:none; color:CanvasText; -webkit-text-fill-color:CanvasText; }
   :focus-visible{ outline:3px solid Highlight; box-shadow:none; }
 }
 
@@ -263,8 +266,9 @@ body::before{
 @keyframes cueBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(6px); } }
 .hero-stage.at-end .cue{ opacity:0; }
 
-/* Static hero only for visitors who asked for less motion; phones get the
-   same scrubbing journey as desktop. Must match the JS gate exactly. */
+/* Static hero for visitors who asked for less motion, and for anyone on a
+   metered or very slow connection, who gets the same page without the 4.4MB
+   download (JS adds .hero-static for that case). Must match the JS gate. */
 @media (prefers-reduced-motion:reduce){
   .hero{ height:100vh; }
   .hero-stage{ position:relative; }
@@ -277,6 +281,17 @@ body::before{
   .band-settle .settle-sub, .band-settle .settle-cta{ opacity:1 !important; transform:none !important; }
   .cue{ display:none; }
 }
+.hero.hero-static{ height:100vh; }
+.hero-static .hero-stage{ position:relative; }
+.hero-static .poster{ background-image:url('hero-ending.jpg'); }
+.hero-static #heroVideo, .hero-static .ring{ display:none; }
+.hero-static .band{ position:relative; opacity:1 !important; height:auto; }
+.hero-static .band-1, .hero-static .band-2, .hero-static .band-3{ display:none; }
+.hero-static .band-settle{ position:absolute; inset:0; pointer-events:auto; }
+.hero-static .band-settle .w{ opacity:1 !important; transform:none !important; }
+.hero-static .band-settle .settle-sub,
+.hero-static .band-settle .settle-cta{ opacity:1 !important; transform:none !important; }
+.hero-static .cue{ display:none; }
 @media (max-height:560px){ .cue{ display:none; } }
 
 /* ===== Sections ===== */
@@ -388,6 +403,16 @@ body::before{
 .rating-row{ display:flex; align-items:baseline; gap:.8rem; flex-wrap:wrap; margin-bottom:2rem; }
 .rating-score{ font-family:var(--font-display); font-size:2.5rem; font-weight:400; }
 .stars{ color:var(--accent); font-size:1.2rem; letter-spacing:.1em; }
+
+/* A real half star: the glyph is painted by a hard-edged gradient clipped to the
+   text, so the fill stops dead in the middle instead of fading the whole star.
+   'to left' is physical, so the filled half stays on the side the row starts
+   from in RTL. */
+.star-half{
+  background:linear-gradient(to left, var(--accent) 50%, rgba(217,123,63,.3) 50%);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+}
 .rating-count{ color:var(--text-secondary); font-size:.9rem; }
 .review-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr)); gap:1.3rem; }
 .review{
@@ -408,7 +433,7 @@ body::before{
 .review-name{ margin:0; font-weight:700; font-size:1rem; }
 .review-sub{ margin:0; font-size:.8rem; color:var(--text-secondary); }
 .review-stars{ margin:0; color:var(--accent); font-size:1.05rem; letter-spacing:.12em; }
-.review-stars .half{ opacity:.45; }
+.review-stars .star-half{ font-size:inherit; }
 .review-text{ margin:0; font-size:1rem; line-height:1.65; flex:1 1 auto; }
 .review-scores{
   list-style:none; margin:0; padding:.7rem 0 0; display:flex; flex-wrap:wrap; gap:.5rem .9rem;
@@ -598,7 +623,7 @@ body.paused *, body.paused *::before, body.paused *::after{
 .cat-note{ color:var(--text-secondary); font-size:.86rem; margin:-.4rem 0 1rem; }
 
 /* ===== Floating rails ===== */
-.rail[hidden], .a11y-panel[hidden]{ display:none; }
+.rail[hidden], .a11y-panel[hidden], .fab[hidden]{ display:none; }
 .rail{
   position:fixed; left:clamp(.7rem,2vw,1.2rem); z-index:90;
   display:flex; flex-direction:column; gap:.7rem;
@@ -657,17 +682,44 @@ body.paused *, body.paused *::before, body.paused *::after{
 
 /* ===== Accessibility panel ===== */
 .a11y-panel{
-  position:fixed; z-index:95;
+  position:fixed; z-index:120;      /* above the nav pill, which is 100 */
   left:clamp(.7rem,2vw,1.2rem); bottom:calc(clamp(.9rem,3vh,1.6rem) + 2 * clamp(44px,5.4vw,52px) + 1.4rem);
-  width:min(17rem, calc(100vw - 1.8rem));
+  width:min(19rem, calc(100vw - 1.8rem));
   padding:1rem 1.1rem 1.1rem;
   border-radius:16px; border:1px solid rgba(217,123,63,.3);
   background:rgba(30,20,14,.96);
   backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   box-shadow:0 22px 50px rgba(0,0,0,.55);
   display:flex; flex-direction:column; gap:.55rem;
+  overflow:hidden;            /* the list inside does the scrolling */
 }
-.a11y-title{ margin:0 0 .2rem; font-weight:800; font-size:.95rem; color:var(--accent); }
+.a11y-head{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; }
+.a11y-title{ margin:0; font-weight:800; font-size:.95rem; color:var(--accent); }
+.a11y-close{
+  flex:none; width:1.9rem; height:1.9rem; border-radius:50%; cursor:pointer;
+  border:1px solid var(--line); background:transparent; color:var(--text-primary);
+  font-size:1.15rem; line-height:1; font-family:inherit;
+}
+.a11y-close:hover{ background:rgba(217,123,63,.22); }
+.a11y-scroll{
+  display:flex; flex-direction:column; gap:.9rem;
+  flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding-inline-end:.25rem;
+  /* the list can outrun the panel, so the bottom edge fades to say "there is more" */
+  -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 22px), transparent 100%);
+          mask-image:linear-gradient(to bottom, #000 calc(100% - 22px), transparent 100%);
+  scrollbar-width:thin; scrollbar-color:rgba(217,123,63,.5) transparent;
+}
+/* once it is scrolled to the end there is nothing left to hint at */
+.a11y-scroll.at-end{ -webkit-mask-image:none; mask-image:none; }
+.a11y-scroll::-webkit-scrollbar{ width:6px; }
+.a11y-scroll::-webkit-scrollbar-thumb{ background:rgba(217,123,63,.5); border-radius:100px; }
+.a11y-group{ display:flex; flex-direction:column; gap:.4rem; }
+.a11y-group-title{
+  margin:0 0 .1rem; font-size:.72rem; font-weight:700; letter-spacing:.14em;
+  color:var(--text-secondary); text-transform:none;
+}
+.a11y-note{ margin:0; font-size:.72rem; color:var(--text-secondary); line-height:1.5; }
 .a11y-row{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; }
 .a11y-label{ font-size:.88rem; color:var(--text-secondary); }
 .a11y-controls{ display:flex; align-items:center; gap:.35rem; }
@@ -681,9 +733,70 @@ body.paused *, body.paused *::before, body.paused *::after{
 .a11y-toggle, .a11y-reset{ padding:.6em .9em; font-size:.88rem; font-weight:600; text-align:start; }
 .a11y-toggle[aria-pressed="true"]{ background:var(--accent); color:#1a1108; border-color:var(--accent); font-weight:800; }
 .a11y-btn:hover, .a11y-toggle:hover, .a11y-reset:hover{ background:rgba(217,123,63,.28); transform:translateY(-1px); }
+.a11y-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.a11y-btn:disabled:hover{ background:rgba(217,123,63,.14); transform:none; }
 .a11y-reset{ background:transparent; color:var(--text-secondary); }
 
 /* ===== Accessibility modes ===== */
+
+/* Text spacing, to WCAG 1.4.12. Scoped to running text so the layout holds. */
+body.a11y-spacing p, body.a11y-spacing li, body.a11y-spacing .lede,
+body.a11y-spacing .dish-note, body.a11y-spacing .review-text,
+body.a11y-spacing .legal-body, body.a11y-spacing .faq-answer{
+  line-height:1.85;
+  letter-spacing:.075em;
+  word-spacing:.16em;
+}
+body.a11y-spacing .legal-body p, body.a11y-spacing .faq-answer p{ margin-bottom:1.6em; }
+
+/* One plain, evenly weighted face instead of the display cut */
+body.a11y-readable{ --font-display:var(--font-body); }
+body.a11y-readable h1, body.a11y-readable h2, body.a11y-readable h3,
+body.a11y-readable .dish-title, body.a11y-readable .cart-title,
+body.a11y-readable .line, body.a11y-readable .rating-score{
+  font-weight:700; letter-spacing:.005em;
+}
+
+/* Grey: the palette goes neutral and the media desaturates. No filter on a
+   wrapper, which would trap every position:fixed control on the page. */
+body.a11y-mono{
+  --accent:#d8d1ca;
+  --accent-muted:#a49c95;
+  --open:#e4e0db;
+  --closed:#c3bbb4;
+  --line:rgba(216,209,202,.3);
+}
+body.a11y-mono img, body.a11y-mono video, body.a11y-mono .poster,
+body.a11y-mono .story-media, body.a11y-mono .oven-icon{ filter:grayscale(1); }
+body.a11y-mono .btn-accent, body.a11y-mono .chip.is-on,
+body.a11y-mono .cart-fab, body.a11y-mono .nav-cta{ color:#14100d; }
+
+/* Headings get a visible frame */
+body.a11y-headings h1, body.a11y-headings h2, body.a11y-headings h3,
+body.a11y-headings .cat-title{
+  outline:2px dashed var(--accent);
+  outline-offset:5px;
+  border-radius:4px;
+}
+
+/* A focus ring nobody can miss, on any background */
+body.a11y-focus :focus-visible{
+  outline:4px solid #fff3e4 !important;
+  outline-offset:3px !important;
+  box-shadow:0 0 0 8px rgba(0,0,0,.9) !important;
+  border-radius:4px;
+}
+
+/* A larger pointer, drawn inline so it needs no extra request */
+body.a11y-cursor,
+body.a11y-cursor *{
+  cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath d='M5 2.5 19 12l-6.4 1.3L9.9 20Z' fill='%23fff' stroke='%23111' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 4 3, auto !important;
+}
+body.a11y-cursor a, body.a11y-cursor button, body.a11y-cursor summary,
+body.a11y-cursor [role="button"], body.a11y-cursor input, body.a11y-cursor label{
+  cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath d='M9 2.6c.9 0 1.6.7 1.6 1.6v6.2l1-.1c.6 0 1.2.2 1.7.5l4.2 2.6c.8.5 1.1 1.5.8 2.3l-1.3 3.6c-.3.9-1.1 1.4-2 1.4H11c-.7 0-1.3-.3-1.8-.8l-4.4-4.9c-.5-.6-.5-1.6.1-2.2.6-.5 1.5-.5 2.1 0l.4.4V4.2c0-.9.7-1.6 1.6-1.6Z' fill='%23fff' stroke='%23111' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E") 10 3, pointer !important;
+}
+
 body.a11y-contrast{
   --text-primary:#ffffff;
   --text-secondary:#ecdfd2;
@@ -802,7 +915,7 @@ body.a11y-nomotion *, body.a11y-nomotion *::before, body.a11y-nomotion *::after{
 }
 
 .cart-panel{
-  position:fixed; z-index:97;
+  position:fixed; z-index:118;      /* above the nav pill, which is 100 */
   right:clamp(.7rem,2vw,1.2rem);
   bottom:calc(clamp(.9rem,3vh,1.6rem) + clamp(52px,6vw,60px) + .8rem);
   width:min(22rem, calc(100vw - 1.8rem));
@@ -885,20 +998,9 @@ body.a11y-nomotion *, body.a11y-nomotion *::before, body.a11y-nomotion *::after{
 
 /* ===== Bigger touch controls on phones ===== */
 @media (max-width:640px){
-  .fab{ width:56px; height:56px; }
-  .fab svg{ width:58%; height:58%; }
-  .rail{ gap:.85rem; }
-
-  .cart-fab{ width:64px; height:64px; }
-  .cart-badge{ min-width:1.7rem; height:1.7rem; font-size:.82rem; }
-
-  .btn{ min-height:54px; font-size:1rem; padding:.9em 1.7em; }
   .settle-cta{ gap:.7rem; width:100%; }
   .settle-cta .btn{ flex:1 1 9rem; }
 
-  .add-btn{ min-height:48px; font-size:.9rem; padding:.7em 1.3em; }
-  .chip{ min-height:48px; font-size:.92rem; padding:.7em 1.25em; }
-  .info-action{ min-height:50px; font-size:.9rem; padding:.75em 1.3em; }
 
   .menu-search{ padding:.25rem 1rem; }
   .menu-search input{ font-size:1.05rem; padding:.9em 0; }
@@ -910,15 +1012,12 @@ body.a11y-nomotion *, body.a11y-nomotion *::before, body.a11y-nomotion *::after{
 
   .a11y-btn{ width:2.9rem; height:2.9rem; font-size:1rem; }
   .a11y-toggle, .a11y-reset{ min-height:50px; font-size:.95rem; }
-  .a11y-panel{ width:min(19rem, calc(100vw - 1.6rem)); }
 
   .faq-item summary, .legal-list summary{ min-height:48px; display:flex; align-items:center; }
   .nav-cta{ padding:.62em 1em; }
   .site-nav nav a{ padding-block:.5em; }
 }
 @media (max-width:370px){
-  .fab{ width:52px; height:52px; }
-  .cart-fab{ width:58px; height:58px; }
   .nav-cta{ padding:.55em .8em; }
 }
 
@@ -962,13 +1061,76 @@ body.a11y-nomotion *, body.a11y-nomotion *::before, body.a11y-nomotion *::after{
   .nav-cta{ padding:.45em .65em; }
 }
 
-/* the floating buttons are larger on phones, so content keeps clear of them */
+/* ===================== Phones: the floating buttons keep their places =====================
+   Larger targets on a small screen, and the content keeps clear of the side rail. */
 @media (max-width:640px){
+  .fab{ width:52px; height:52px; }
+  .fab svg{ width:56%; height:56%; }
+  .rail{ gap:.8rem; }
+  .fab-tip{ display:none; }              /* no hover on a phone, so the label never shows */
+
+  .cart-fab{ width:58px; height:58px; }
+  .cart-badge{ min-width:1.6rem; height:1.6rem; font-size:.8rem; }
+
   .section .wrap,
   .site-footer .footer-inner,
-  .site-footer .footer-bottom{ padding-inline-end:4.4rem; }
+  .site-footer .footer-bottom{ padding-inline-end:4rem; }
   .site-footer{ padding-bottom:6.5rem; }
-  .final-cta .wrap{ padding-inline:4.4rem 4.4rem; }
+  .final-cta .wrap{ padding-inline:4rem; }
+}
+@media (max-width:370px){
+  .fab{ width:48px; height:48px; }
+  .cart-fab{ width:54px; height:54px; }
+  .section .wrap,
+  .site-footer .footer-inner,
+  .site-footer .footer-bottom{ padding-inline-end:3.6rem; }
+}
+
+/* ===================== Phones: reading width and rhythm ===================== */
+@media (max-width:640px){
+  .section{ padding:clamp(3.2rem,9vw,4.5rem) 1.15rem; }
+
+  /* the nav pill floats over the page, so give the text beneath it somewhere to go */
+  .site-nav::before{
+    content:""; position:absolute; inset-inline:0; top:calc(-1 * clamp(.6rem,1.6vh,1.1rem));
+    height:5.6rem; pointer-events:none; z-index:-1;
+    background:linear-gradient(to bottom,
+      rgba(24,16,11,.97) 0%, rgba(24,16,11,.9) 40%, rgba(24,16,11,0) 100%);
+  }
+  /* on a small screen the pill sits over busy frames, so it carries its own ground */
+  .nav-inner{ background:rgba(27,18,13,.93); }
+
+  h2{ font-size:clamp(1.55rem,7vw,2rem); }
+  .lede{ font-size:1.02rem; }
+  .section-note{ font-size:.9rem; }
+
+  /* filters: one swipeable row instead of five stacked ones */
+  .menu-chips{
+    flex-wrap:nowrap; overflow-x:auto; scroll-snap-type:x proximity;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    margin-inline:-1.15rem; padding:.15rem 1.15rem .35rem;
+    scroll-padding-inline-start:1.15rem;
+    max-width:none;
+    -webkit-mask-image:linear-gradient(to left, #000 88%, transparent 100%);
+            mask-image:linear-gradient(to left, #000 88%, transparent 100%);
+  }
+  .menu-chips::-webkit-scrollbar{ display:none; }
+  .chip{ flex:none; scroll-snap-align:start; min-height:44px; font-size:.88rem; padding:.55em 1.05em; }
+
+  .menu-cats{ grid-template-columns:1fr; gap:2.2rem; margin-top:1.8rem; }
+  .dish-list{ gap:1.15rem; }
+  .dish-note{ font-size:.9rem; }
+  .dish-foot{ justify-content:flex-start; gap:.6rem; }
+  .add-btn{ order:-1; min-height:44px; font-size:.85rem; padding:.55em 1.1em; }
+
+  .review{ padding:1.15rem; border-radius:14px; }
+  .review-text{ font-size:.97rem; }
+  .rating-score{ font-size:2rem; }
+
+  .info-card{ padding:1.2rem; }
+  .info-action{ min-height:46px; font-size:.86rem; padding:.6em 1.1em; }
+
+  .btn{ min-height:50px; font-size:.96rem; padding:.8em 1.4em; }
 }
 
 /* ===== A light that follows the pointer ===== */
@@ -1044,3 +1206,31 @@ body.a11y-nomotion .cursor-glow{ display:none; }
   .lost .lede{ margin-inline:auto; margin-bottom:2rem; }
   .lost .settle-cta{ justify-content:center; }
   .lost-code{ font-family:var(--font-mono); color:var(--accent); letter-spacing:.3em; font-size:.85rem; margin-bottom:1rem; }
+
+/* ===== The accessibility panel on a phone ===== */
+@media (max-width:640px){
+  .a11y-panel{
+    left:.7rem; right:.7rem; width:auto; max-width:none;
+    padding:.9rem 1rem 1.05rem;
+  }
+  .a11y-scroll{ gap:.7rem; }
+  /* two per row: the same ten controls in roughly half the height */
+  .a11y-group{ display:grid; grid-template-columns:1fr 1fr; gap:.4rem; align-items:stretch; }
+  .a11y-group-title, .a11y-group .a11y-row{ grid-column:1 / -1; }
+  .a11y-toggle{ min-height:46px; padding:.5em .6em; font-size:.85rem; text-align:center; line-height:1.25; }
+  .a11y-reset{ min-height:46px; padding:.55em .9em; font-size:.92rem; }
+  .a11y-btn{ width:2.6rem; height:2.6rem; }
+  .a11y-close{ width:2.4rem; height:2.4rem; font-size:1.25rem; }
+}
+
+/* ===== Offline notice =====
+   Only ever visible when the page is being read without a connection, so the
+   visitor is never shown a cached menu as if it were live. */
+.offline-bar{
+  position:fixed; inset-inline:0; top:0; z-index:200; margin:0;
+  padding:.55em 1rem calc(.55em + env(safe-area-inset-top, 0px));
+  background:var(--closed); color:#2a0f0a;
+  font-size:.85rem; font-weight:700; text-align:center;
+}
+.offline-bar[hidden]{ display:none; }
+body.is-offline .site-nav{ top:calc(clamp(.6rem,1.6vh,1.1rem) + 2.4rem); }

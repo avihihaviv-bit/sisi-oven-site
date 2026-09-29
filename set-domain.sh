@@ -37,6 +37,7 @@ def index(s):
                f'<meta property="og:image" content="{domain}/assets/social-preview.jpg">', s)
     s = re.sub(r'<meta name="twitter:image" content="[^"]*">',
                f'<meta name="twitter:image" content="{domain}/assets/social-preview.jpg">', s)
+    s = s.replace('__SITE_URL__', domain)          # the JSON-LD block
     return s.replace('<!-- DEPLOY STEP: set the live domain on canonical, og:url and og:image -->\n', '') \
             .replace('<!-- DEPLOY STEP: patch og:image and og:url with the live absolute URL before deploying -->\n', '')
 
