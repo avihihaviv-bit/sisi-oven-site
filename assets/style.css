@@ -392,7 +392,7 @@ body::before{
   flex:1 1 auto; min-width:1.5rem; align-self:flex-end; margin-bottom:.32em;
   border-bottom:1px dotted rgba(203,185,168,.35);
 }
-.dish-price{
+.dish-price{ unicode-bidi:isolate;
   font-family:var(--font-mono); font-size:.9rem; color:var(--accent);
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
@@ -1234,3 +1234,16 @@ body.a11y-nomotion .cursor-glow{ display:none; }
 }
 .offline-bar[hidden]{ display:none; }
 body.is-offline .site-nav{ top:calc(clamp(.6rem,1.6vh,1.1rem) + 2.4rem); }
+
+/* ===== Sold out, and a pause on orders =====
+   Both come from the admin panel. A dish that has run out keeps its place in
+   the menu so people can see it exists, but loses its add button. */
+.dish-row.sold-out{ opacity:.62; }
+.dish-row.sold-out .dish-title{ text-decoration:line-through; text-decoration-thickness:1px; }
+.sold-out-flag{
+  display:inline-block; padding:.3em .85em; border-radius:100px;
+  font-size:.78rem; font-weight:800; white-space:nowrap;
+  background:rgba(240,112,94,.14); color:var(--closed); border:1px solid rgba(240,112,94,.5);
+}
+body.orders-paused .add-btn,
+body.orders-paused .cart-fab{ display:none; }

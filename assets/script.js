@@ -509,8 +509,14 @@
   const searchClear = document.getElementById('searchClear');
   const menuChips = document.getElementById('menuChips');
   const menuCount = document.getElementById('menuCount');
-  const menuCats = [...document.querySelectorAll('.menu-cat')];
-  const dishRows = [...document.querySelectorAll('.dish-row')];
+  // re-read on every pass: the admin panel can replace the whole menu at runtime
+  let menuCats = [...document.querySelectorAll('.menu-cat')];
+  let dishRows = [...document.querySelectorAll('.dish-row')];
+  document.addEventListener('sisi:menu-replaced', () => {
+    menuCats = [...document.querySelectorAll('.menu-cat')];
+    dishRows = [...document.querySelectorAll('.dish-row')];
+    applyMenuFilter();
+  });
   let activeFilter = 'all';
 
   const emptyNote = document.createElement('p');
@@ -870,8 +876,10 @@
     }
   }
 
-  document.querySelectorAll('.add-btn').forEach(btn => {
-    btn.addEventListener('click', () => addToCart(btn.dataset.add, btn.dataset.price, btn));
+  // delegated, so buttons rendered later by the live menu work without rebinding
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.add-btn');
+    if (btn) addToCart(btn.dataset.add, btn.dataset.price, btn);
   });
 
   function orderText() {

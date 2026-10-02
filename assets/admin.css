@@ -1,0 +1,179 @@
+/* ============================================================================
+   Admin panel. Borrows the site's tokens, fonts and RTL from style.css so it
+   reads as the same product, but lays out as a tool rather than a page.
+   ========================================================================= */
+body.admin{
+  background:var(--canvas); color:var(--text-primary);
+  font-family:var(--font-body); min-height:100vh;
+}
+body.admin .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* every display rule below would otherwise outrank the browser's own
+   [hidden]{display:none}, and the sign-in form would sit on top of the panel */
+body.admin [hidden]{ display:none !important; }
+
+/* ---------- sign in ---------- */
+.auth{ min-height:100vh; display:grid; place-items:center; padding:1.5rem; }
+.auth-card{
+  width:min(26rem,100%); background:var(--panel); border:1px solid var(--line);
+  border-radius:20px; padding:2rem 1.75rem; display:flex; flex-direction:column; gap:.9rem;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+.auth-mark{ width:56px; height:56px; fill:var(--accent); margin:0 auto .3rem; }
+.auth-card h1{ font-family:var(--font-display); font-weight:400; font-size:1.6rem; text-align:center; margin:0; }
+.auth-sub{ text-align:center; color:var(--text-secondary); font-size:.9rem; margin:0 0 .6rem; }
+.auth-note{ font-size:.78rem; color:var(--text-secondary); text-align:center; margin:.4rem 0 0; line-height:1.5; }
+
+.field{ display:flex; flex-direction:column; gap:.35rem; font-size:.88rem; }
+.field > span, .field legend{ color:var(--text-secondary); font-weight:600; }
+.field input, .field select, .field textarea{
+  font-family:inherit; font-size:1rem; color:var(--text-primary);
+  background:rgba(255,255,255,.04); border:1px solid var(--line);
+  border-radius:10px; padding:.7em .8em; width:100%;
+}
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible{
+  outline:3px solid #fff3e4; outline-offset:2px; border-color:var(--accent);
+}
+.field.check{ flex-direction:row; align-items:center; gap:.6rem; }
+.field.check input{ width:1.15rem; height:1.15rem; flex:none; accent-color:var(--accent); }
+.field.check span{ color:var(--text-primary); font-weight:500; }
+.field.tags{ border:1px solid var(--line); border-radius:10px; padding:.7rem .8rem; }
+.field.tags label{ display:inline-flex; align-items:center; gap:.4rem; margin-inline-end:1rem; font-size:.9rem; }
+.field.tags input{ width:1.05rem; height:1.05rem; accent-color:var(--accent); }
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+
+.form-error{
+  margin:0; padding:.6em .8em; border-radius:10px; font-size:.86rem; font-weight:600;
+  background:rgba(240,112,94,.15); border:1px solid var(--closed); color:#ffd9d2;
+}
+
+/* ---------- shell ---------- */
+.shell{ display:grid; grid-template-columns:15rem 1fr; min-height:100vh; }
+.sidebar{
+  background:var(--panel-2); border-inline-start:1px solid var(--line);
+  display:flex; flex-direction:column; gap:1.2rem; padding:1.4rem 1rem;
+  position:sticky; top:0; height:100vh;
+}
+.side-brand{ display:flex; align-items:center; gap:.6rem; font-family:var(--font-display); font-size:1.15rem; }
+.side-brand svg{ width:28px; height:28px; fill:var(--accent); }
+.side-nav{ display:flex; flex-direction:column; gap:.3rem; }
+.side-link{
+  font-family:inherit; font-size:.95rem; text-align:start; cursor:pointer;
+  background:transparent; border:0; color:var(--text-secondary);
+  padding:.7em .8em; border-radius:10px;
+}
+.side-link:hover{ background:rgba(217,123,63,.12); color:var(--text-primary); }
+.side-link.is-on{ background:var(--accent); color:#1a1108; font-weight:700; }
+.side-foot{ margin-top:auto; display:flex; flex-direction:column; gap:.5rem; font-size:.85rem; }
+.side-who{ margin:0; color:var(--text-secondary); }
+.side-site{ color:var(--accent); }
+.side-out{ font-family:inherit; cursor:pointer; background:transparent; border:1px solid var(--line);
+  color:var(--text-secondary); border-radius:10px; padding:.55em .8em; }
+.side-out:hover{ border-color:var(--closed); color:var(--closed); }
+
+.content{ padding:1.6rem clamp(1rem,3vw,2rem) 4rem; }
+.view-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1.2rem; }
+.view-head h2{ font-family:var(--font-display); font-weight:400; font-size:1.7rem; margin:0; }
+.view-sub{ margin:.2rem 0 0; color:var(--text-secondary); font-size:.88rem; }
+
+.toolbar{ display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem; }
+.toolbar input, .toolbar select{
+  font-family:inherit; font-size:.92rem; color:var(--text-primary);
+  background:rgba(255,255,255,.04); border:1px solid var(--line);
+  border-radius:100px; padding:.6em 1em;
+}
+.toolbar input{ flex:1 1 16rem; }
+
+/* ---------- table ---------- */
+.table-wrap{ background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+.grid{ width:100%; border-collapse:collapse; font-size:.92rem; }
+.grid th{
+  text-align:start; font-size:.75rem; letter-spacing:.1em; color:var(--text-secondary);
+  font-weight:700; padding:.9rem 1rem; border-bottom:1px solid var(--line); background:var(--panel-2);
+}
+.grid td{ padding:.8rem 1rem; border-bottom:1px solid rgba(203,185,168,.1); vertical-align:middle; }
+.grid tr:last-child td{ border-bottom:0; }
+.grid tr:hover td{ background:rgba(217,123,63,.05); }
+.cell-name{ font-weight:700; }
+.cell-desc{ display:block; color:var(--text-secondary); font-size:.82rem; margin-top:.15rem;
+  max-width:34ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.price{ font-family:var(--font-mono); color:var(--accent); white-space:nowrap; }
+.price{ unicode-bidi:isolate; }
+.price del{ color:var(--text-secondary); margin-inline-end:.5em; unicode-bidi:isolate; }
+
+.pill{ display:inline-block; padding:.25em .7em; border-radius:100px; font-size:.78rem; font-weight:700; white-space:nowrap; }
+.pill-on{ background:rgba(111,206,135,.16); color:var(--open); border:1px solid rgba(111,206,135,.5); }
+.pill-off{ background:rgba(240,112,94,.16); color:#ff9c8d; border:1px solid rgba(240,112,94,.6); }
+.pill-hidden{ background:rgba(203,185,168,.12); color:var(--text-secondary); border:1px solid var(--line); }
+
+.row-actions{ display:flex; gap:.4rem; justify-content:flex-end; }
+.mini{
+  font-family:inherit; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap;
+  background:rgba(217,123,63,.12); border:1px solid rgba(217,123,63,.4); color:#eda069;
+  border-radius:100px; padding:.45em .9em;
+}
+.mini:hover{ background:var(--accent); color:#1a1108; }
+.mini[disabled]{ opacity:.45; cursor:not-allowed; }
+
+.empty{ padding:3rem 1rem; text-align:center; color:var(--text-secondary); margin:0; }
+.loading{ padding:2.5rem 1rem; text-align:center; color:var(--text-secondary); }
+.spin{ display:inline-block; width:1rem; height:1rem; border:2px solid var(--line);
+  border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; vertical-align:-2px; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){ .spin{ animation:none; } }
+
+.card.form{ background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:1.4rem; display:flex; flex-direction:column; gap:.9rem; max-width:34rem; }
+
+/* ---------- modals ---------- */
+.modal{ position:fixed; inset:0; z-index:300; display:grid; place-items:center;
+  padding:1rem; background:rgba(10,6,4,.72); backdrop-filter:blur(3px); }
+.modal[hidden]{ display:none; }
+.modal-card{ width:min(34rem,100%); max-height:92vh; display:flex; flex-direction:column;
+  background:var(--panel); border:1px solid var(--line); border-radius:18px; overflow:hidden;
+  box-shadow:0 30px 70px rgba(0,0,0,.6); }
+.modal-card.narrow{ width:min(24rem,100%); }
+.modal-head{ display:flex; align-items:center; justify-content:space-between;
+  padding:1rem 1.2rem; border-bottom:1px solid var(--line); }
+.modal-head h3{ margin:0; font-family:var(--font-display); font-weight:400; font-size:1.25rem; }
+.modal-x{ width:2rem; height:2rem; border-radius:50%; cursor:pointer; font-size:1.2rem; line-height:1;
+  background:transparent; border:1px solid var(--line); color:var(--text-primary); font-family:inherit; }
+.modal-x:hover{ background:rgba(217,123,63,.2); }
+.modal-body{ padding:1.2rem; overflow-y:auto; display:flex; flex-direction:column; gap:.9rem; }
+.modal-foot{ display:flex; align-items:center; gap:.6rem; padding:1rem 1.2rem;
+  border-top:1px solid var(--line); background:var(--panel-2); }
+.grow{ flex:1 1 auto; }
+.btn-danger{ background:transparent; border:1px solid var(--closed); color:var(--closed); }
+.btn-danger:hover{ background:var(--closed); color:#2a0f0a; }
+
+/* ---------- toasts ---------- */
+.toasts{ position:fixed; inset-block-end:1rem; inset-inline-start:1rem; z-index:400;
+  display:flex; flex-direction:column; gap:.5rem; }
+.toast{ background:var(--panel-2); border:1px solid var(--line); border-inline-start:3px solid var(--accent);
+  border-radius:12px; padding:.75em 1em; font-size:.9rem; font-weight:600;
+  box-shadow:0 14px 34px rgba(0,0,0,.5); animation:toastIn .25s var(--ease-out); max-width:22rem; }
+.toast.err{ border-inline-start-color:var(--closed); }
+.toast.ok{ border-inline-start-color:var(--open); }
+@keyframes toastIn{ from{ opacity:0; transform:translateY(8px); } }
+@media (prefers-reduced-motion:reduce){ .toast{ animation:none; } }
+
+/* ---------- phone ---------- */
+@media (max-width:820px){
+  .shell{ grid-template-columns:1fr; }
+  .sidebar{ position:static; height:auto; flex-direction:row; align-items:center;
+    flex-wrap:wrap; gap:.7rem; border-inline-start:0; border-bottom:1px solid var(--line); }
+  .side-nav{ flex-direction:row; flex:1 1 100%; overflow-x:auto; }
+  .side-foot{ margin-top:0; flex-direction:row; align-items:center; gap:.7rem; flex:1 1 100%; }
+  .side-who{ flex:1 1 auto; }
+  .content{ padding:1.1rem 1rem 3rem; }
+  .row2{ grid-template-columns:1fr; }
+  /* the table becomes cards, which is the only way it reads on a phone */
+  .grid thead{ display:none; }
+  .grid, .grid tbody, .grid tr, .grid td{ display:block; width:100%; }
+  .grid tr{ border-bottom:1px solid var(--line); padding:.7rem .9rem; }
+  .grid td{ border:0; padding:.2rem 0; }
+  .grid td[data-label]::before{ content:attr(data-label) ": "; color:var(--text-secondary); font-size:.8rem; }
+  .cell-desc{ white-space:normal; max-width:none; }
+  .row-actions{ justify-content:flex-start; margin-top:.5rem; }
+  .toasts{ inset-inline:1rem; }
+}

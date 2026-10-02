@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ניהול · התנור של סבתא סיסי</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#201510">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body class="admin">
+
+<!-- ============ sign in ============ -->
+<section class="auth" id="authView">
+  <form class="auth-card" id="loginForm" novalidate>
+    <svg class="auth-mark" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 20c-14 14-20 24-20 36a20 20 0 0 0 40 0c0-6-3-11-7-15 1 6-2 10-6 10-5 0-6-5-4-10 3-7 0-15-3-21z"/></svg>
+    <h1>ניהול האתר</h1>
+    <p class="auth-sub">התנור של סבתא סיסי</p>
+
+    <label class="field">
+      <span>אימייל</span>
+      <input type="email" id="email" autocomplete="username" required>
+    </label>
+    <label class="field">
+      <span>סיסמה</span>
+      <input type="password" id="password" autocomplete="current-password" required>
+    </label>
+
+    <p class="form-error" id="loginError" role="alert" hidden></p>
+    <button type="submit" class="btn btn-accent" id="loginBtn">כניסה</button>
+    <p class="auth-note" id="authNote"></p>
+  </form>
+</section>
+
+<!-- ============ the panel ============ -->
+<div class="shell" id="shellView" hidden>
+  <aside class="sidebar">
+    <div class="side-brand">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 20c-14 14-20 24-20 36a20 20 0 0 0 40 0c0-6-3-11-7-15 1 6-2 10-6 10-5 0-6-5-4-10 3-7 0-15-3-21z"/></svg>
+      <span>ניהול</span>
+    </div>
+    <nav class="side-nav" aria-label="ניווט בפאנל">
+      <button type="button" class="side-link is-on" data-view="products">מוצרים</button>
+      <button type="button" class="side-link" data-view="categories">קטגוריות</button>
+      <button type="button" class="side-link" data-view="settings">הגדרות העסק</button>
+    </nav>
+    <div class="side-foot">
+      <p class="side-who" id="whoAmI"></p>
+      <a class="side-site" href="/" target="_blank" rel="noopener">לאתר<span class="sr-only"> (נפתח בכרטיסייה חדשה)</span></a>
+      <button type="button" class="side-out" id="signOut">יציאה</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- ---- products ---- -->
+    <section class="view" id="view-products">
+      <header class="view-head">
+        <div>
+          <h2>מוצרים</h2>
+          <p class="view-sub" id="productCount"></p>
+        </div>
+        <button type="button" class="btn btn-accent" id="newProduct">+ מוצר חדש</button>
+      </header>
+
+      <div class="toolbar">
+        <label class="sr-only" for="search">חיפוש מוצר</label>
+        <input type="search" id="search" placeholder="חיפוש לפי שם או תיאור" autocomplete="off">
+        <label class="sr-only" for="catFilter">סינון לפי קטגוריה</label>
+        <select id="catFilter"><option value="">כל הקטגוריות</option></select>
+        <label class="sr-only" for="availFilter">סינון לפי זמינות</label>
+        <select id="availFilter">
+          <option value="">הכל</option>
+          <option value="yes">זמין</option>
+          <option value="no">אזל מהמלאי</option>
+          <option value="hidden">מוסתר</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table class="grid" id="productTable">
+          <thead>
+            <tr>
+              <th scope="col">מנה</th>
+              <th scope="col">קטגוריה</th>
+              <th scope="col">מחיר</th>
+              <th scope="col">זמינות</th>
+              <th scope="col"><span class="sr-only">פעולות</span></th>
+            </tr>
+          </thead>
+          <tbody id="productRows"></tbody>
+        </table>
+        <p class="empty" id="productEmpty" hidden></p>
+        <div class="loading" id="productLoading"><span class="spin" aria-hidden="true"></span> טוען…</div>
+      </div>
+    </section>
+
+    <!-- ---- categories ---- -->
+    <section class="view" id="view-categories" hidden>
+      <header class="view-head">
+        <div><h2>קטגוריות</h2><p class="view-sub">הסדר כאן הוא הסדר באתר</p></div>
+        <button type="button" class="btn btn-accent" id="newCategory">+ קטגוריה</button>
+      </header>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th scope="col">שם</th><th scope="col">סדר</th><th scope="col">מנות</th><th scope="col"><span class="sr-only">פעולות</span></th></tr></thead>
+          <tbody id="categoryRows"></tbody>
+        </table>
+        <p class="empty" id="categoryEmpty" hidden></p>
+      </div>
+    </section>
+
+    <!-- ---- settings ---- -->
+    <section class="view" id="view-settings" hidden>
+      <header class="view-head"><div><h2>הגדרות העסק</h2><p class="view-sub" id="settingsNote"></p></div></header>
+      <form class="card form" id="settingsForm">
+        <label class="field"><span>שם העסק</span><input type="text" id="s_business_name"></label>
+        <label class="field"><span>טלפון</span><input type="tel" id="s_phone" inputmode="tel"></label>
+        <label class="field"><span>וואטסאפ</span><input type="tel" id="s_whatsapp" inputmode="tel"></label>
+        <label class="field"><span>כתובת</span><input type="text" id="s_address"></label>
+        <label class="field check">
+          <input type="checkbox" id="s_accepting_orders">
+          <span>מקבלים הזמנות כרגע</span>
+        </label>
+        <label class="field"><span>הודעה לאתר (ריק = לא מוצגת)</span><input type="text" id="s_notice" placeholder="למשל: עומס חריג, זמן הכנה ארוך מהרגיל"></label>
+        <button type="submit" class="btn btn-accent" id="saveSettings">שמירה</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<!-- ============ product editor ============ -->
+<div class="modal" id="editor" hidden>
+  <form class="modal-card" id="editorForm" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <div class="modal-head">
+      <h3 id="editorTitle">עריכת מוצר</h3>
+      <button type="button" class="modal-x" id="editorClose" aria-label="סגירה">×</button>
+    </div>
+    <div class="modal-body">
+      <label class="field"><span>שם המנה</span><input type="text" id="p_name" required></label>
+      <label class="field"><span>תיאור</span><textarea id="p_description" rows="3"></textarea></label>
+      <div class="row2">
+        <label class="field"><span>מחיר (ריק = בטלפון)</span><input type="number" id="p_price" min="0" step="1" inputmode="numeric"></label>
+        <label class="field"><span>מחיר מבצע</span><input type="number" id="p_sale_price" min="0" step="1" inputmode="numeric"></label>
+      </div>
+      <label class="field"><span>קטגוריה</span><select id="p_category" required></select></label>
+      <fieldset class="field tags">
+        <legend>תגיות</legend>
+        <label><input type="checkbox" value="טבעוני"> טבעוני</label>
+        <label><input type="checkbox" value="חריף"> חריף</label>
+        <label><input type="checkbox" value="פופולארי"> פופולארי</label>
+        <label><input type="checkbox" value="מכיל בשר"> מכיל בשר</label>
+      </fieldset>
+      <div class="row2">
+        <label class="field"><span>סדר הופעה</span><input type="number" id="p_sort" step="10" inputmode="numeric"></label>
+        <label class="field"><span>כתובת תמונה</span><input type="url" id="p_image_url" placeholder="https://…"></label>
+      </div>
+      <label class="field check"><input type="checkbox" id="p_available"><span>זמין להזמנה</span></label>
+      <label class="field check"><input type="checkbox" id="p_hidden"><span>מוסתר מהאתר לגמרי</span></label>
+      <p class="form-error" id="editorError" role="alert" hidden></p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-danger" id="deleteProduct">מחיקה</button>
+      <div class="grow"></div>
+      <button type="button" class="btn btn-ghost" id="editorCancel">ביטול</button>
+      <button type="submit" class="btn btn-accent" id="editorSave">שמירה</button>
+    </div>
+  </form>
+</div>
+
+<!-- ============ confirm ============ -->
+<div class="modal" id="confirm" hidden>
+  <div class="modal-card narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-head"><h3 id="confirmTitle">לאשר?</h3></div>
+    <div class="modal-body"><p id="confirmText"></p></div>
+    <div class="modal-foot">
+      <div class="grow"></div>
+      <button type="button" class="btn btn-ghost" id="confirmNo">ביטול</button>
+      <button type="button" class="btn btn-danger" id="confirmYes">מחיקה</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script src="assets/db-config.js"></script>
+<script src="assets/db.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>
