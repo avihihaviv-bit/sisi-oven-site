@@ -15,12 +15,46 @@
   catch (e) { session = null; }
 
   const saveSession = s => {
+    // GoTrue reports expires_in (seconds). Turning it into an absolute moment
+    // here is what lets request() know to refresh before a call rather than
+    // after one has already failed.
+    if (s && s.expires_in && !s.expires_at) {
+      s.expires_at = Date.now() + s.expires_in * 1000;
+    }
     session = s;
     try {
       if (s) sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
       else sessionStorage.removeItem(SESSION_KEY);
     } catch (e) { /* private mode: the session simply does not survive a reload */ }
   };
+
+  /* Access tokens last an hour, so without this the panel signs the owner out
+     in the middle of editing a dish. GoTrue rotates the refresh token on every
+     use: two parallel refreshes would race, and the loser would invalidate the
+     winner's token. Holding the in-flight promise means the three calls that
+     load the panel share one refresh. */
+  let refreshing = null;
+
+  function refresh() {
+    if (refreshing) return refreshing;
+    refreshing = (async () => {
+      const res = await fetch(cfg.url + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': cfg.anonKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.access_token) {
+        saveSession(null);           // the refresh token is spent; sign in again
+        const e = new Error('session-expired');
+        e.status = res.status;
+        throw e;
+      }
+      saveSession(data);
+      return data;
+    })().finally(() => { refreshing = null; });
+    return refreshing;
+  }
 
   const headers = (extra) => Object.assign({
     'apikey': cfg.anonKey,
@@ -30,6 +64,12 @@
 
   async function request(path, init) {
     if (!configured) throw new Error('db-not-configured');
+    // a minute of slack, so a request started just under the wire still lands
+    // with a valid token
+    if (session && session.refresh_token && session.expires_at
+        && session.expires_at - 60000 < Date.now()) {
+      await refresh();
+    }
     const res = await fetch(cfg.url + path, Object.assign({ headers: headers(init && init.headers) }, init));
     if (res.status === 204) return null;
     const body = await res.text();

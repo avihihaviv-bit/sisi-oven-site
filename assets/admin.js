@@ -12,6 +12,10 @@
   const el = (tag, cls, text) => { const n = document.createElement(tag);
     if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
+  // the tags the editor can actually show. Anything a product carries beyond
+  // this list has no checkbox, so it has to survive a save untouched.
+  const TAG_CHECKBOXES = [...document.querySelectorAll('.field.tags input')].map(c => c.value);
+
   /* ---------- toasts ---------- */
   const toastHost = $('#toasts');
   function toast(msg, kind) {
@@ -307,7 +311,13 @@
       price: price === '' ? null : Number(price),
       sale_price: sale === '' ? null : Number(sale),
       category: $('#p_category').value,
-      tags: [...document.querySelectorAll('.field.tags input')].filter(c => c.checked).map(c => c.value),
+      // the editor only offers four checkboxes, but the menu uses more tags than
+      // that (סחוג אדום carries חריף מאוד). Rebuilding from the checkboxes alone
+      // would drop every tag without one, so carry the unrepresented ones over.
+      tags: [
+        ...[...document.querySelectorAll('.field.tags input')].filter(c => c.checked).map(c => c.value),
+        ...(((editing && editing.tags) || []).filter(t => !TAG_CHECKBOXES.includes(t)))
+      ],
       sort: Number($('#p_sort').value) || 0,
       image_url: $('#p_image_url').value.trim() || null,
       available: $('#p_available').checked,

@@ -31,8 +31,10 @@ ErrorDocument 404 /404.html
   ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>
 
-# the service worker must revalidate, or an update never reaches anyone
-<FilesMatch "^sw\.js$">
+# the service worker must revalidate, or an update never reaches anyone.
+# db-config.js is in the same boat: it is edited once, after launch, and a
+# cached empty copy leaves the live menu and the admin panel dark.
+<FilesMatch "^(sw\.js|db-config\.js)$">
   Header set Cache-Control "public, max-age=0, must-revalidate"
 </FilesMatch>
 

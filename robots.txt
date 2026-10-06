@@ -1,5 +1,9 @@
 User-agent: *
 Allow: /
 
-# DEPLOY STEP: replace example.com with the live domain
-Sitemap: https://example.com/sitemap.xml
+# the staff panel. This keeps it out of search results; it is not the
+# protection. That is the Supabase sign-in and the row level security
+# policies in supabase/schema.sql.
+Disallow: /admin.html
+
+Sitemap: https://sisi-oven-site-naq1.vercel.app/sitemap.xml
